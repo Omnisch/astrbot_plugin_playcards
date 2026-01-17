@@ -14,17 +14,17 @@ try:
     from .rev_dict import rev_dict  # type: ignore
 except Exception as e:
     rev_dict = {}
-    logger.exception(f"[STS Playcards] Failed to import rev_dict from rev_dict.py: {e}")
+    logger.exception(f"[Playcards] Failed to import rev_dict from rev_dict.py: {e}")
 
 
 @register(
-    "astrbot_plugin_sts_playcards",
+    "astrbot_plugin_playcards",
     "Omnisch",
-    "杀戮尖塔关键词触发打牌",
-    "1.0.0",
-    "https://github.com/Omnisch/astrbot_plugin_sts_playcards",
+    "关键词触发打出三国杀、杀戮尖塔等卡牌",
+    "1.2.0",
+    "https://github.com/Omnisch/astrbot_plugin_playcards",
 )
-class StsPlaycardsPlugin(Star):
+class PlaycardsPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
         self.config = config
@@ -37,7 +37,7 @@ class StsPlaycardsPlugin(Star):
         self._keys_sorted: List[str] = sorted((rev_dict or {}).keys(), key=len, reverse=True)
 
         logger.info(
-            f"[STS Playcards] loaded: keys={len(self._keys_sorted)}, card_dir={self.card_dir}"
+            f"[Playcards] loaded: keys={len(self._keys_sorted)}, card_dir={self.card_dir}"
         )
 
     def _normalize(self, s: str) -> str:
@@ -117,12 +117,12 @@ class StsPlaycardsPlugin(Star):
 
         if not img_path.exists():
             logger.warning(
-                f"[STS Playcards] image not found: {img_path} (matched_key={matched_key})"
+                f"[Playcards] image not found: {img_path} (matched_key={matched_key})"
             )
             return
 
         logger.info(
-            f"[STS Playcards] hit key={matched_key!r} -> id={picked_id!r} -> {img_path.name}"
+            f"[Playcards] hit key={matched_key!r} -> id={picked_id!r} -> {img_path.name}"
         )
 
         # 4) 发送图片：本地文件

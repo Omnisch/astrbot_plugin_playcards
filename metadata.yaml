@@ -1,6 +1,6 @@
-name: astrbot_plugin_sts_playcards
-display_name: 杀戮尖塔关键词
-desc: 杀戮尖塔关键词触发打牌
-version: v1.1.0
+name: astrbot_plugin_playcards
+display_name: 关键词出牌
+desc: 关键词触发打出三国杀、杀戮尖塔等卡牌
+version: v1.2.0
 author: Omnisch
-repo: https://github.com/Omnisch/astrbot_plugin_sts_playcards
+repo: https://github.com/Omnisch/astrbot_plugin_playcards
