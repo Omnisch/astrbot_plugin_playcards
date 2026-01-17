@@ -88,23 +88,19 @@ class PlaycardsPlugin(Star):
 
     @filter.event_message_type(filter.EventMessageType.ALL)
     async def on_any_message(self, event: AstrMessageEvent):
-        # 1) 总开关
-        if not self.config.get("enabled", True):
-            return
-
-        # 2) 仅监听白名单会话
+        # 1) 仅监听白名单会话
         if not self._is_session_allowed(event):
             return
 
-        # 3) 只看纯文本
+        # 2) 只看纯文本
         text = event.message_str or ""
         if not text:
             return
         
-        # 排除命令样消息
+        # 3.1) 排除形如命令的消息
         if self._is_command_like(text):
             return
-        # 排除 @ 机器人的消息
+        # 3.2) 排除 @ 机器人的消息
         if self._is_at_me(event):
             return
 

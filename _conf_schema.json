@@ -1,9 +1,4 @@
 {
-  "enabled": {
-    "type": "bool",
-    "description": "是否启用插件",
-    "default": true
-  },
   "session_whitelist": {
     "type": "list",
     "description": "会话白名单 (仅这些 session_id 会触发)。留空表示不监听任何会话。",
