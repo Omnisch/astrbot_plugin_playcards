@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple
 
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, filter
-from astrbot.api.message_components import Image
+from astrbot.api.message_components import At, Image
 from astrbot.api.star import Context, Star, register
 
 # 尝试导入 rev_dict
@@ -70,6 +70,22 @@ class StsPlaycardsPlugin(Star):
         session_id = getattr(event.message_obj, "session_id", "")  # 文档字段：session_id
         return session_id in whitelist
 
+    def _is_command_like(self, text: str) -> bool:
+        s = (text or "").lstrip()
+        return s.startswith(("/", "!", "@", "#"))  # 可以在此添加其他前缀
+
+    def _is_at_me(self, event) -> bool:
+        self_id = getattr(event.message_obj, "self_id", None)
+        if not self_id:
+            return False
+        for comp in getattr(event.message_obj, "message", []) or []:
+            if isinstance(comp, At):
+                # 不同适配器 At 字段可能叫 qq / user_id 等，按平台调整
+                target = getattr(comp, "qq", None) or getattr(comp, "user_id", None)
+                if str(target) == str(self_id):
+                    return True
+        return False
+
     @filter.event_message_type(filter.EventMessageType.ALL)
     async def on_any_message(self, event: AstrMessageEvent):
         # 1) 总开关
@@ -83,6 +99,13 @@ class StsPlaycardsPlugin(Star):
         # 3) 只看纯文本
         text = event.message_str or ""
         if not text:
+            return
+        
+        # 排除命令样消息
+        if self._is_command_like(text):
+            return
+        # 排除 @ 机器人的消息
+        if self._is_at_me(event):
             return
 
         match = self._pick_match(text)
