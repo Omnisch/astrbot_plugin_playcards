@@ -13,9 +13,28 @@
     "description": "匹配时是否区分大小写",
     "default": true
   },
-  "first_match_only": {
-    "type": "bool",
-    "description": "命中多个 key 时是否只触发一次 (取第一个命中的 key)",
-    "default": true
+  "enabled_decks": {
+    "type": "list",
+    "description": "启用的游戏卡组 ID。填写 * 可启用所有已发现卡组。",
+    "hint": "内置卡组：sts、sts2。以后添加的新卡组也在这里填写其 deck.json 中的 id。",
+    "default": [
+      "sts",
+      "sts2"
+    ],
+    "items": {
+      "type": "string"
+    }
+  },
+  "deck_priority": {
+    "type": "list",
+    "description": "卡组匹配优先级，从前到后依次匹配。",
+    "hint": "例如 [\"sts2\", \"sts\"] 会在两个卡组都启用时优先匹配《杀戮尖塔 2》。未列出的已启用卡组会追加在末尾。",
+    "default": [
+      "sts2",
+      "sts"
+    ],
+    "items": {
+      "type": "string"
+    }
   }
 }

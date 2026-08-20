@@ -1,27 +1,20 @@
 from __future__ import annotations
 
-import random
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.message_components import At, Image
 from astrbot.api.star import Context, Star, register
 
-# 尝试导入 rev_dict
-try:
-    from .rev_dict import rev_dict  # type: ignore
-except Exception as e:
-    rev_dict = {}
-    logger.exception(f"[Playcards] Failed to import rev_dict from rev_dict.py: {e}")
+from .deck_loader import discover_decks, find_match, resolve_deck_order
 
 
 @register(
     "astrbot_plugin_playcards",
     "Omnisch",
-    "关键词触发打出三国杀、杀戮尖塔等卡牌",
-    "1.2.0",
+    "关键词触发打出《杀戮尖塔》系列等游戏卡牌",
+    "2.0.0",
     "https://github.com/Omnisch/astrbot_plugin_playcards",
 )
 class PlaycardsPlugin(Star):
@@ -29,39 +22,26 @@ class PlaycardsPlugin(Star):
         super().__init__(context)
         self.config = config
 
-        # 插件目录与卡牌目录
         self.plugin_dir = Path(__file__).resolve().parent
-        self.card_dir = self.plugin_dir / "cards"
-
-        # 预处理 keys (按长度降序能让“更具体/更长的 key”优先命中)
-        self._keys_sorted: List[str] = sorted((rev_dict or {}).keys(), key=len, reverse=True)
-
+        self.decks = discover_decks(self.plugin_dir / "decks", logger=logger)
+        self.deck_order = resolve_deck_order(
+            self.decks,
+            self.config.get("enabled_decks", ["sts", "sts2"]),
+            self.config.get("deck_priority", ["sts2", "sts"]),
+        )
+        loaded = ", ".join(
+            f"{deck.deck_id}({len(deck.card_dict)})" for deck in self.deck_order
+        )
         logger.info(
-            f"[Playcards] loaded: keys={len(self._keys_sorted)}, card_dir={self.card_dir}"
+            f"[Playcards] 已发现 {len(self.decks)} 个卡组；启用顺序: {loaded or '无'}"
         )
 
-    def _normalize(self, s: str) -> str:
-        return s if self.config.get("case_sensitive", True) else s.lower()
-
-    def _pick_match(self, message: str) -> Optional[Tuple[str, str]]:
-        """
-        返回 (matched_key, picked_id) 或 None
-        """
-        if not self._keys_sorted:
-            return None
-
-        msg = self._normalize(message)
-
-        for k in self._keys_sorted:
-            kk = self._normalize(k)
-            if kk and kk in msg:
-                ids: List[str] = list(rev_dict.get(k, []))  # 原始 key 取值
-                if not ids:
-                    continue
-                picked = random.choice(ids)
-                return (k, picked)
-
-        return None
+    def _pick_match(self, message: str):
+        return find_match(
+            message,
+            self.deck_order,
+            case_sensitive=self.config.get("case_sensitive", True),
+        )
 
     def _is_session_allowed(self, event: AstrMessageEvent) -> bool:
         whitelist = self.config.get("session_whitelist", [])
@@ -96,7 +76,7 @@ class PlaycardsPlugin(Star):
         text = event.message_str or ""
         if not text:
             return
-        
+
         # 3.1) 排除形如命令的消息
         if self._is_command_like(text):
             return
@@ -105,25 +85,13 @@ class PlaycardsPlugin(Star):
             return
 
         match = self._pick_match(text)
-        if not match:
-            return
-
-        matched_key, picked_id = match
-        img_path = self.card_dir / f"{picked_id}.png"
-
-        if not img_path.exists():
-            logger.warning(
-                f"[Playcards] image not found: {img_path} (matched_key={matched_key})"
-            )
+        if match is None:
             return
 
         logger.info(
-            f"[Playcards] hit key={matched_key!r} -> id={picked_id!r} -> {img_path.name}"
+            f"[Playcards] 命中 deck={match.deck_id!r}, key={match.keyword!r} "
+            f"-> id={match.card_id!r} -> {match.image_path.name}"
         )
 
-        # 4) 发送图片：本地文件
-        yield event.chain_result([Image.fromFileSystem(str(img_path))])
-
-        # 5) 命中后是否只触发一次（本实现默认本来就只发一次）
-        # first_match_only 用于未来“同一条消息多 key 多次触发”的扩展，这里保留配置字段。
+        yield event.chain_result([Image.fromFileSystem(str(match.image_path))])
         return

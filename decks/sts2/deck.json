@@ -1,0 +1,6 @@
+{
+  "id": "sts2",
+  "name": "Slay the Spire 2 / 杀戮尖塔 2",
+  "dictionary": "card_dict.py",
+  "cards": "cards"
+}
