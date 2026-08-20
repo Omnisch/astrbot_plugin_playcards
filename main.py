@@ -4,19 +4,12 @@ from pathlib import Path
 
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, filter
-from astrbot.api.message_components import At, Image
-from astrbot.api.star import Context, Star, register
+from astrbot.api.message_components import At
+from astrbot.api.star import Context, Star
 
 from .deck_loader import discover_decks, find_match, resolve_deck_order
 
 
-@register(
-    "astrbot_plugin_playcards",
-    "Omnisch",
-    "关键词触发打出《杀戮尖塔》系列等游戏卡牌",
-    "2.0.0",
-    "https://github.com/Omnisch/astrbot_plugin_playcards",
-)
 class PlaycardsPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
@@ -67,7 +60,8 @@ class PlaycardsPlugin(Star):
         return False
 
     @filter.event_message_type(filter.EventMessageType.ALL)
-    async def on_any_message(self, event: AstrMessageEvent):
+    async def on_message(self, event: AstrMessageEvent):
+        """在允许的会话中匹配卡牌关键词并发送原始卡面。"""
         # 1) 仅监听白名单会话
         if not self._is_session_allowed(event):
             return
@@ -93,5 +87,4 @@ class PlaycardsPlugin(Star):
             f"-> id={match.card_id!r} -> {match.image_path.name}"
         )
 
-        yield event.chain_result([Image.fromFileSystem(str(match.image_path))])
-        return
+        yield event.image_result(str(match.image_path))
