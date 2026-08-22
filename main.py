@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from pathlib import Path
 
 from astrbot.api import AstrBotConfig, logger
@@ -7,7 +8,13 @@ from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.message_components import At
 from astrbot.api.star import Context, Star
 
-from .deck_loader import discover_decks, find_match, resolve_deck_order
+from .deck_loader import (
+    discover_decks,
+    find_match,
+    keyword_ratio,
+    keyword_trigger_probability,
+    resolve_deck_order,
+)
 
 
 class PlaycardsPlugin(Star):
@@ -59,6 +66,21 @@ class PlaycardsPlugin(Star):
                     return True
         return False
 
+    def _passes_keyword_ratio_filter(self, message: str, keyword: str) -> bool:
+        if not self.config.get("keyword_ratio_trigger", False):
+            return True
+
+        ratio = keyword_ratio(message, keyword)
+        probability = keyword_trigger_probability(ratio)
+        passed = probability >= 1.0 or (
+            probability > 0.0 and random.random() < probability
+        )
+        logger.info(
+            f"[Playcards] 关键字占比={ratio:.1%}, 触发概率={probability:.1%}, "
+            f"判定={'发送' if passed else '跳过'}"
+        )
+        return passed
+
     @filter.event_message_type(filter.EventMessageType.ALL)
     async def on_message(self, event: AstrMessageEvent):
         """在允许的会话中匹配卡牌关键词并发送原始卡面。"""
@@ -80,6 +102,8 @@ class PlaycardsPlugin(Star):
 
         match = self._pick_match(text)
         if match is None:
+            return
+        if not self._passes_keyword_ratio_filter(text, match.keyword):
             return
 
         logger.info(

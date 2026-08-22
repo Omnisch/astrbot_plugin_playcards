@@ -13,6 +13,12 @@
     "description": "匹配时是否区分大小写",
     "default": true
   },
+  "keyword_ratio_trigger": {
+    "type": "bool",
+    "description": "仅在卡牌关键字占消息内容足够高时按概率触发",
+    "hint": "关闭时只要匹配到关键字就发送。开启后：占比不超过 15% 时不发送，达到 50% 时必定发送；15%～50% 之间按线性映射的概率发送。计算长度时忽略消息首尾空白。",
+    "default": false
+  },
   "enabled_decks": {
     "type": "list",
     "description": "启用的游戏卡组 ID。填写 * 可启用所有已发现卡组。",

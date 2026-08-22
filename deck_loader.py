@@ -9,6 +9,8 @@ from typing import Callable, Iterable, Mapping, Optional, Sequence
 
 
 SUPPORTED_IMAGE_EXTENSIONS = {".png", ".webp", ".gif", ".jpg", ".jpeg"}
+MIN_KEYWORD_RATIO = 0.15
+GUARANTEED_KEYWORD_RATIO = 0.50
 
 
 @dataclass(frozen=True)
@@ -30,6 +32,25 @@ class CardMatch:
     keyword: str
     card_id: str
     image_path: Path
+
+
+def keyword_ratio(message: str, keyword: str) -> float:
+    """返回关键字在去除首尾空白后的整条消息中所占的字符比例。"""
+    content = message.strip()
+    if not content or not keyword:
+        return 0.0
+    return min(len(keyword) / len(content), 1.0)
+
+
+def keyword_trigger_probability(ratio: float) -> float:
+    """将关键字占比线性映射为触发概率：15%→0，50%→1。"""
+    if ratio <= MIN_KEYWORD_RATIO:
+        return 0.0
+    if ratio >= GUARANTEED_KEYWORD_RATIO:
+        return 1.0
+    return (ratio - MIN_KEYWORD_RATIO) / (
+        GUARANTEED_KEYWORD_RATIO - MIN_KEYWORD_RATIO
+    )
 
 
 def _load_python_card_dict(path: Path, deck_id: str) -> dict[str, list[str]]:
